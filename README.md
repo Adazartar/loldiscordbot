@@ -1,0 +1,6 @@
+# loldiscordbot
+
+## Architecture
+
+- Nodejs
+- MongoDB
