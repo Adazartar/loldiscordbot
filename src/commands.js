@@ -18,13 +18,13 @@ async function getLiveMatch(msg, summoner, region){
         const playerResponse = await fetch(playerLink);
 
         if(playerResponse.ok){
-            let playerData = await response.json();
+            let playerData = await playerResponse.json();
             let encryptSummID = playerData.id;
             const spectatorLink = `https://${code}.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/${encryptSummID}?api_key=${process.env.RIOT_API_KEY}`;
             const spectatorResponse = await fetch(spectatorLink);
 
             if(spectatorResponse.ok){
-                let spectatorData = await response.json();
+                let spectatorData = await spectatorResponse.json();
                 const currentTime = Date.now();
                 const gameStartTime = spectatorData.gameStartTime;
 
@@ -52,7 +52,7 @@ async function getLiveMatch(msg, summoner, region){
     }
 }
 
-async function updateGame(msg, summoner, gameID, choice, startTime){
+async function updateGame(msg, summoner, region, gameID, choice, startTime){
     try {
         const game = await Game.find({ gameID : gameID });
         if(game.length === 0){
@@ -61,7 +61,8 @@ async function updateGame(msg, summoner, gameID, choice, startTime){
                 summoner: summoner,
                 users: [
                     { userID : msg.author.id,
-                    choice: choice }
+                      region : region,
+                      choice: choice }
                 ],
                 startTime: startTime
             });
@@ -102,8 +103,11 @@ async function checkUser(userID, username){
 async function lol(msg, args){
     await checkUser(msg.author.id, msg.author.globalName);
     const currentTime = Date.now();
-    const [summoner, region, choice] = [args[0], args[1], await choiceSimplifier(msg, args[2])];
+    const [summoner, region, choice] = [args[0], regionToCode(args[1]), await choiceSimplifier(msg, args[2])];
     if(choice === "INVALID") {
+        return;
+    }
+    if(region === "EXIT") {
         return;
     }
     else{
@@ -111,27 +115,14 @@ async function lol(msg, args){
         if (match.length === 0){
             const {gameID: newGameID, startTime: newStartTime} = await getLiveMatch(msg, summoner, region);
             if (newGameID === -1) return;
-            else await updateGame(msg, summoner, newGameID, choice, newStartTime);
+            else await updateGame(msg, summoner, region, newGameID, choice, newStartTime);
         }
         else if (match === -1) return;
         else if (currentTime - match.startTime > 300000){
             await msg.channel.send(`${summoner} is longer than 5 minutes into the game, guessing is over`);
             return;
         }
-        else await updateGame(msg, summoner, match.gameID, choice, startTime);
-    }
-}
-
-async function regionToRouting(msg, region){
-    try{
-        if (["NA", "BR", "LAN", "LAS"].includes(region.toUpperCase())) return "AMERICAS";
-        else if (["KR","JP"].includes(region.toUpperCase())) return "ASIA";
-        else if (["EUNE", "EUW", "TR", "RU"].includes(region.toUpperCase())) return "EUROPE";
-        else if (["OCE", "PH2", "SG2", "TH2", "TW2", "VN2"].includes(region.toUpperCase())) return "SEA";
-        else await msg.channel.send('Region entered was invalid');
-    }
-    catch{
-        await help(msg);
+        else await updateGame(msg, summoner, region, match.gameID, choice, startTime);
     }
 }
 

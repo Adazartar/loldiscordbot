@@ -14,6 +14,8 @@ const commands = new Map();
 commands.set('test', test);
 commands.set('lol', lol);
 
+const { runPersistentTasks } = require('./persistent.js');
+
 const client = new Client({
     intents: [
         IntentsBitField.Flags.Guilds,
@@ -43,5 +45,7 @@ client.on('messageCreate', (msg) => {
         }
     }
 });
+
+runPersistentTasks();
 
 
