@@ -1,11 +1,18 @@
+require('dotenv').config();
 
 const { Client, IntentsBitField } = require('discord.js');
-require('dotenv').config();
-const { test } = require('./commands.js');
 
+const mongoose = require('mongoose');
+mongoose.connect(process.env.DATABASE_URL, { useNewUrlParser: true });
+const db = mongoose.connection;
+db.on('error', (error) => console.log(error));
+db.once('open', () => console.log("Connected to database"));
+
+const { test, lol } = require('./commands.js');
 const PREFIX = '$';
 const commands = new Map();
 commands.set('test', test);
+commands.set('lol', lol);
 
 const client = new Client({
     intents: [
